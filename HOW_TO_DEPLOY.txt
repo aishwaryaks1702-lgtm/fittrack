@@ -1,0 +1,35 @@
+# FitTrack PWA — Deploy Guide
+
+## Your files
+- index.html  → main app
+- manifest.json → PWA config
+- sw.js → offline support
+- icons/ → app icons
+
+## Deploy on Netlify (free, 5 minutes)
+
+1. Go to https://netlify.com and sign up free
+2. Click "Add new site" → "Deploy manually"
+3. Drag and drop the entire fittracker/ folder onto the page
+4. Netlify gives you a link like: https://yourname-fittrack.netlify.app
+5. Share that link with friends!
+
+## Add to phone home screen
+
+### iPhone (Safari)
+1. Open your Netlify link in Safari
+2. Tap the Share button (box with arrow)
+3. Scroll down → tap "Add to Home Screen"
+4. Tap "Add" → FitTrack icon appears on your home screen!
+
+### Android (Chrome)
+1. Open your Netlify link in Chrome
+2. Tap the 3-dot menu (top right)
+3. Tap "Add to Home screen"
+4. Tap "Add" → done!
+
+## Share with friends
+Just send them your Netlify link via WhatsApp, Instagram, email — they open it,
+add to home screen, and they have the same app!
+
+Each person's data is stored on their own device privately.

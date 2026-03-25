@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitTrack">
+<meta name="description" content="Track your daily workouts and diet over 3 months">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>FitTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #181b24;
+    --bg3: #1e2230;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f2f8;
+    --muted: #7a7f96;
+    --green: #22d47e;
+    --green-dim: rgba(34,212,126,0.12);
+    --blue: #4d9fff;
+    --blue-dim: rgba(77,159,255,0.12);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --pink: #f06292;
+    --pink-dim: rgba(240,98,146,0.12);
+    --purple: #9b7cff;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+
+  /* LAYOUT */
+  .app { display: flex; flex-direction: column; min-height: 100vh; max-width: 430px; margin: 0 auto; }
+  .header { padding: 52px 20px 16px; background: var(--bg); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+  .logo span { color: var(--green); }
+  .date-badge { font-size: 12px; color: var(--muted); background: var(--bg3); padding: 5px 12px; border-radius: 20px; }
+  .content { flex: 1; padding: 16px 20px 100px; overflow-y: auto; }
+
+  /* BOTTOM NAV */
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--bg2); border-top: 1px solid var(--border); display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 100; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; cursor: pointer; opacity: 0.45; transition: opacity 0.2s; }
+  .nav-item.active { opacity: 1; }
+  .nav-icon { width: 22px; height: 22px; }
+  .nav-label { font-size: 10px; font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .nav-item.active .nav-label { color: var(--green); }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* STATS ROW */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .stat-card.accent-green { border-color: rgba(34,212,126,0.25); background: linear-gradient(135deg, var(--bg2), rgba(34,212,126,0.05)); }
+  .stat-card.accent-blue { border-color: rgba(77,159,255,0.25); background: linear-gradient(135deg, var(--bg2), rgba(77,159,255,0.05)); }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+  .stat-num.green { color: var(--green); }
+  .stat-num.blue { color: var(--blue); }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 24px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  /* CHECK CARDS */
+  .check-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px; margin-bottom: 8px; }
+  .check-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; user-select: none; }
+  .check-row:active { background: var(--bg3); }
+  .check-row.done { background: var(--green-dim); }
+  .check-box { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .check-row.done .check-box { background: var(--green); border-color: var(--green); }
+  .check-icon { color: white; display: none; }
+  .check-row.done .check-icon { display: block; }
+  .check-info { flex: 1; }
+  .check-name { font-size: 15px; font-weight: 500; }
+  .check-row.done .check-name { color: var(--green); }
+  .check-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .check-tag { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 0.3px; }
+  .tag-workout { background: var(--green-dim); color: var(--green); }
+  .tag-meal { background: var(--blue-dim); color: var(--blue); }
+  .tag-water { background: var(--amber-dim); color: var(--amber); }
+  .tag-sleep { background: var(--pink-dim); color: var(--pink); }
+
+  /* NOTE */
+  .note-wrap { margin-top: 16px; }
+  textarea { width: 100%; background: var(--bg2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; resize: none; outline: none; transition: border 0.2s; }
+  textarea:focus { border-color: var(--green); }
+  .save-btn { margin-top: 8px; width: 100%; padding: 12px; background: var(--green); color: #0f1117; border: none; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.5px; cursor: pointer; transition: opacity 0.2s; }
+  .save-btn:active { opacity: 0.8; }
+
+  /* STREAK ROW */
+  .streak-row { display: flex; gap: 6px; align-items: center; margin-bottom: 20px; }
+  .streak-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .streak-circle { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700; transition: all 0.2s; }
+  .streak-circle.full { background: var(--green); border-color: var(--green); color: #0f1117; }
+  .streak-circle.partial { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+  .streak-circle.today-ring { box-shadow: 0 0 0 2px var(--green); }
+  .streak-dlabel { font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'Syne', sans-serif; font-weight: 600; }
+
+  /* CALENDAR */
+  .month-block { margin-bottom: 28px; }
+  .month-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-hdr { text-align: center; font-size: 10px; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700; padding: 4px 0 8px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; color: var(--muted); position: relative; transition: all 0.15s; }
+  .cal-cell.empty { border: none; }
+  .cal-cell.future { opacity: 0.25; }
+  .cal-cell.has-data { border-color: var(--border2); color: var(--text); }
+  .cal-cell.today-cell { border-color: var(--green); color: var(--green); font-weight: 700; }
+  .cal-cell.full-day { background: var(--green-dim); border-color: rgba(34,212,126,0.3); }
+  .pip-row { display: flex; gap: 2px; }
+  .pip { width: 4px; height: 4px; border-radius: 50%; }
+
+  /* PROGRESS */
+  .prog-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+  .prog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .prog-name { font-size: 14px; font-weight: 500; }
+  .prog-pct { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+  .prog-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .prog-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* MONTH SUMMARY BARS */
+  .month-bars { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 20px; }
+  .month-bar-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 10px; text-align: center; }
+  .mb-label { font-size: 10px; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  .mb-bar-wrap { height: 60px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+  .mb-bar { width: 12px; border-radius: 3px 3px 0 0; min-height: 3px; transition: height 0.5s; }
+  .mb-pct { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; margin-top: 6px; }
+
+  /* MOTIVATIONAL TIP */
+  .tip-card { background: var(--green-dim); border: 1px solid rgba(34,212,126,0.2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; }
+  .tip-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+  .tip-text strong { color: var(--green); }
+
+  /* ANALYZE BUTTON */
+  .analyze-btn { width: 100%; padding: 14px; background: transparent; border: 1px solid var(--border2); color: var(--text); border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+  .analyze-btn:active { background: var(--bg3); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* ANIMATIONS */
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+  .popped { animation: pop 0.25s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .view.active { animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">Fit<span>Track</span></div>
+      <div class="date-badge" id="header-date"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- TODAY VIEW -->
+    <div id="view-today" class="view active">
+      <div class="stats-grid">
+        <div class="stat-card accent-green">
+          <div class="stat-num green" id="s-streak">0</div>
+          <div class="stat-lbl">Day streak</div>
+        </div>
+        <div class="stat-card accent-blue">
+          <div class="stat-num blue" id="s-days">0</div>
+          <div class="stat-lbl">Days logged</div>
+        </div>
+      </div>
+
+      <div class="streak-row" id="streak-row"></div>
+
+      <div class="tip-card"><div class="tip-text" id="tip-text">Welcome! Start your journey by checking off today's habits below.</div></div>
+
+      <div class="section-header"><div class="section-title">Workout</div></div>
+      <div class="check-card">
+        <div class="check-row" id="ci-workout" onclick="toggle('workout')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">Workout done</div><div class="check-sub">Any exercise counts — gym, walk, yoga</div></div>
+          <div class="check-tag tag-workout">Fitness</div>
+        </div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Meals</div></div>
+      <div class="check-card">
+        <div class="check-row" id="ci-breakfast" onclick="toggle('breakfast')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">Breakfast</div><div class="check-sub">Healthy, balanced morning meal</div></div>
+          <div class="check-tag tag-meal">Nutrition</div>
+        </div>
+        <div class="check-row" id="ci-lunch" onclick="toggle('lunch')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">Lunch</div><div class="check-sub">Nutritious midday meal</div></div>
+          <div class="check-tag tag-meal">Nutrition</div>
+        </div>
+        <div class="check-row" id="ci-dinner" onclick="toggle('dinner')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">Dinner</div><div class="check-sub">Light evening meal</div></div>
+          <div class="check-tag tag-meal">Nutrition</div>
+        </div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Wellness</div></div>
+      <div class="check-card">
+        <div class="check-row" id="ci-water" onclick="toggle('water')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">2L water</div><div class="check-sub">Stay hydrated throughout the day</div></div>
+          <div class="check-tag tag-water">Hydration</div>
+        </div>
+        <div class="check-row" id="ci-sleep" onclick="toggle('sleep')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">Good sleep</div><div class="check-sub">7–8 hrs, consistent bedtime</div></div>
+          <div class="check-tag tag-sleep">Sleep</div>
+        </div>
+        <div class="check-row" id="ci-mindful" onclick="toggle('mindful')">
+          <div class="check-box"><svg class="check-icon" width="13" height="10" viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="check-info"><div class="check-name">Mindfulness</div><div class="check-sub">Meditation, breathing or journaling</div></div>
+          <div class="check-tag tag-sleep">Mental</div>
+        </div>
+      </div>
+
+      <div class="note-wrap">
+        <textarea id="day-note" rows="3" placeholder="Add a note for today — how did you feel, what you ate, PR achieved..."></textarea>
+        <button class="save-btn" onclick="saveNote()">Save today's note</button>
+      </div>
+    </div>
+
+    <!-- CALENDAR VIEW -->
+    <div id="view-calendar" class="view">
+      <div class="section-title" style="margin-bottom:16px">3-month history</div>
+      <div class="legend" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px">
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span>Workout</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block"></span>All meals</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block"></span>Water</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--pink);display:inline-block"></span>Sleep</span>
+      </div>
+      <div id="cal-container"></div>
+    </div>
+
+    <!-- PROGRESS VIEW -->
+    <div id="view-progress" class="view">
+      <div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat-card accent-green">
+          <div class="stat-num green" id="p-workouts">0</div>
+          <div class="stat-lbl">Total workouts</div>
+        </div>
+        <div class="stat-card accent-blue">
+          <div class="stat-num blue" id="p-streak">0</div>
+          <div class="stat-lbl">Best streak</div>
+        </div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Monthly breakdown</div></div>
+      <div class="month-bars" id="month-bars"></div>
+
+      <div class="section-header"><div class="section-title">Habit consistency</div></div>
+
+      <div class="prog-card">
+        <div class="prog-header"><span class="prog-name">Workout</span><span class="prog-pct green" id="pp-workout">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="pf-workout" style="background:var(--green);width:0%"></div></div>
+        <div class="prog-sub" id="ps-workout">0 of 0 days</div>
+      </div>
+      <div class="prog-card">
+        <div class="prog-header"><span class="prog-name">All three meals</span><span class="prog-pct" style="color:var(--blue)" id="pp-meals">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="pf-meals" style="background:var(--blue);width:0%"></div></div>
+        <div class="prog-sub" id="ps-meals">0 of 0 days</div>
+      </div>
+      <div class="prog-card">
+        <div class="prog-header"><span class="prog-name">Water intake</span><span class="prog-pct" style="color:var(--amber)" id="pp-water">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="pf-water" style="background:var(--amber);width:0%"></div></div>
+        <div class="prog-sub" id="ps-water">0 of 0 days</div>
+      </div>
+      <div class="prog-card">
+        <div class="prog-header"><span class="prog-name">Sleep</span><span class="prog-pct" style="color:var(--pink)" id="pp-sleep">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="pf-sleep" style="background:var(--pink);width:0%"></div></div>
+        <div class="prog-sub" id="ps-sleep">0 of 0 days</div>
+      </div>
+
+      <button class="analyze-btn" onclick="sendAnalysis()">Get AI analysis of my progress ↗</button>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-today" onclick="goTo('today')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="nav-label">Today</span>
+    </div>
+    <div class="nav-item" id="nav-calendar" onclick="goTo('calendar')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span class="nav-label">Calendar</span>
+    </div>
+    <div class="nav-item" id="nav-progress" onclick="goTo('progress')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span class="nav-label">Progress</span>
+    </div>
+  </nav>
+</div>
+
+<script>
+const KEYS=['workout','breakfast','lunch','dinner','water','sleep','mindful'];
+const START=new Date(2026,2,25);
+const MONTHS_3=3;
+
+function dk(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function todayKey(){return dk(new Date());}
+
+let data={};
+try{const s=localStorage.getItem('fittrack_v2');if(s)data=JSON.parse(s);}catch(e){}
+function save(){try{localStorage.setItem('fittrack_v2',JSON.stringify(data));}catch(e){}}
+function getDay(k){if(!data[k])data[k]={};return data[k];}
+
+function toggle(key){
+  const k=todayKey();
+  const d=getDay(k);
+  d[key]=d[key]?0:1;
+  save();
+  const el=document.getElementById('ci-'+key);
+  if(el){el.className='check-row'+(d[key]?' done':'');el.classList.add('popped');setTimeout(()=>el.classList.remove('popped'),300);}
+  renderTodayState();
+  updateAllStats();
+}
+
+function saveNote(){
+  const k=todayKey();
+  const d=getDay(k);
+  d.note=document.getElementById('day-note').value;
+  save();
+  const btn=document.querySelector('.save-btn');
+  btn.textContent='Saved!';setTimeout(()=>btn.textContent="Save today's note",1500);
+}
+
+function renderTodayState(){
+  const k=todayKey();
+  const d=getDay(k);
+  KEYS.forEach(key=>{
+    const el=document.getElementById('ci-'+key);
+    if(el)el.className='check-row'+(d[key]?' done':'');
+  });
+  const note=document.getElementById('day-note');
+  if(note&&document.activeElement!==note)note.value=d.note||'';
+
+  const done=KEYS.filter(k2=>d[k2]).length;
+  const tips=[
+    "Welcome! Start your journey by checking off today's habits.",
+    "Great start! <strong>Every habit counts</strong> — keep ticking.",
+    "Building momentum! You're <strong>2 for 7</strong> today.",
+    "Halfway through the day! <strong>Stay consistent.</strong>",
+    "Strong session! <strong>4 habits done</strong> — push further.",
+    "Almost perfect! <strong>One more to go</strong> today.",
+    "Outstanding! <strong>6 habits locked in.</strong>",
+    "<strong>PERFECT DAY!</strong> Every single habit completed. You're unstoppable."
+  ];
+  document.getElementById('tip-text').innerHTML=tips[Math.min(done,7)];
+}
+
+function updateStreak(){
+  let streak=0;
+  for(let i=0;i<90;i++){
+    const dt=new Date();dt.setDate(dt.getDate()-i);
+    const d=data[dk(dt)];
+    if(d&&Object.values(d).some(v=>v&&v!==0&&typeof v!=='string')){streak++;}
+    else{break;}
+  }
+  document.getElementById('s-streak').textContent=streak;
+  document.getElementById('s-days').textContent=Object.keys(data).length;
+
+  const row=document.getElementById('streak-row');
+  row.innerHTML='';
+  const dayNames=['Mo','Tu','We','Th','Fr','Sa','Su'];
+  for(let i=6;i>=0;i--){
+    const dt=new Date();dt.setDate(dt.getDate()-i);
+    const d=data[dk(dt)]||{};
+    const isToday=i===0;
+    const hasW=d.workout?1:0;
+    const hasM=(d.breakfast&&d.lunch&&d.dinner)?1:0;
+    const full=hasW&&hasM;
+    const partial=hasW||hasM;
+    const dow=(dt.getDay()+6)%7;
+    const wrap=document.createElement('div');wrap.className='streak-day';
+    const circ=document.createElement('div');
+    circ.className='streak-circle'+(full?' full':partial?' partial':'')+(isToday?' today-ring':'');
+    circ.textContent=dt.getDate();
+    const lbl=document.createElement('div');lbl.className='streak-dlabel';lbl.textContent=dayNames[dow];
+    wrap.appendChild(circ);wrap.appendChild(lbl);row.appendChild(wrap);
+  }
+}
+
+function updateAllStats(){
+  updateStreak();
+  updateProgress();
+}
+
+function buildCalendar(){
+  const container=document.getElementById('cal-container');
+  container.innerHTML='';
+  const today=new Date();
+  const mNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const hNames=['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+  for(let m=0;m<MONTHS_3;m++){
+    const base=new Date(START.getFullYear(),START.getMonth()+m,1);
+    const daysInMonth=new Date(base.getFullYear(),base.getMonth()+1,0).getDate();
+    let firstDow=(base.getDay()+6)%7;
+
+    const block=document.createElement('div');block.className='month-block';
+    const title=document.createElement('div');title.className='month-title';
+    title.textContent=mNames[base.getMonth()]+' '+base.getFullYear();
+    block.appendChild(title);
+
+    const grid=document.createElement('div');grid.className='cal-grid';
+    hNames.forEach(h=>{const hd=document.createElement('div');hd.className='cal-hdr';hd.textContent=h;grid.appendChild(hd);});
+    for(let b=0;b<firstDow;b++){const e=document.createElement('div');e.className='cal-cell empty';grid.appendChild(e);}
+
+    for(let day=1;day<=daysInMonth;day++){
+      const dt=new Date(base.getFullYear(),base.getMonth(),day);
+      const dkk=dk(dt);
+      const dd=data[dkk]||{};
+      const isToday=dt.toDateString()===today.toDateString();
+      const isFuture=dt>today;
+      const hasW=dd.workout?1:0;
+      const hasM=(dd.breakfast&&dd.lunch&&dd.dinner)?1:0;
+      const hasWater=dd.water?1:0;
+      const hasSleep=dd.sleep?1:0;
+      const full=hasW&&hasM&&hasWater&&hasSleep;
+      const hasAny=hasW||hasM||hasWater||hasSleep;
+
+      const cell=document.createElement('div');
+      let cls='cal-cell';
+      if(isFuture)cls+=' future';
+      else if(isToday)cls+=' today-cell';
+      else if(full)cls+=' full-day has-data';
+      else if(hasAny)cls+=' has-data';
+      cell.className=cls;
+
+      const num=document.createElement('span');num.textContent=day;cell.appendChild(num);
+
+      if(hasAny&&!isFuture){
+        const pr=document.createElement('div');pr.className='pip-row';
+        if(hasW){const p=document.createElement('div');p.className='pip';p.style.background='var(--green)';pr.appendChild(p);}
+        if(hasM){const p=document.createElement('div');p.className='pip';p.style.background='var(--blue)';pr.appendChild(p);}
+        if(hasWater){const p=document.createElement('div');p.className='pip';p.style.background='var(--amber)';pr.appendChild(p);}
+        if(hasSleep){const p=document.createElement('div');p.className='pip';p.style.background='var(--pink)';pr.appendChild(p);}
+        cell.appendChild(pr);
+      }
+      grid.appendChild(cell);
+    }
+    block.appendChild(grid);
+    container.appendChild(block);
+  }
+}
+
+function updateProgress(){
+  const allKeys=Object.keys(data);
+  const total=allKeys.length;
+  if(!total)return;
+
+  let wCount=0,mCount=0,waterCount=0,sleepCount=0;
+  allKeys.forEach(k=>{
+    const d=data[k];
+    if(d.workout)wCount++;
+    if(d.breakfast&&d.lunch&&d.dinner)mCount++;
+    if(d.water)waterCount++;
+    if(d.sleep)sleepCount++;
+  });
+
+  const pct=(n)=>Math.round(n/total*100);
+
+  [['workout',wCount,wCount],['meals',mCount,mCount],['water',waterCount,waterCount],['sleep',sleepCount,sleepCount]].forEach(([key,cnt])=>{
+    const p=pct(cnt);
+    const pf=document.getElementById('pf-'+key);
+    const pp=document.getElementById('pp-'+key);
+    const ps=document.getElementById('ps-'+key);
+    if(pf)pf.style.width=p+'%';
+    if(pp)pp.textContent=p+'%';
+    if(ps)ps.textContent=cnt+' of '+total+' days';
+  });
+
+  let bestStreak=0,cur=0;
+  for(let i=0;i<90;i++){
+    const dt=new Date(START);dt.setDate(START.getDate()+i);
+    const d=data[dk(dt)];
+    if(d&&(d.workout||d.breakfast)){cur++;bestStreak=Math.max(bestStreak,cur);}
+    else{cur=0;}
+  }
+  document.getElementById('p-workouts').textContent=wCount;
+  document.getElementById('p-streak').textContent=bestStreak;
+
+  const mbContainer=document.getElementById('month-bars');
+  mbContainer.innerHTML='';
+  const mNames=['Month 1','Month 2','Month 3'];
+  for(let m=0;m<3;m++){
+    const base=new Date(START.getFullYear(),START.getMonth()+m,1);
+    const daysInM=new Date(base.getFullYear(),base.getMonth()+1,0).getDate();
+    let mW=0,mD=0,mTotal=0;
+    for(let d2=1;d2<=daysInM;d2++){
+      const dt=new Date(base.getFullYear(),base.getMonth(),d2);
+      if(dt>new Date())break;
+      mTotal++;
+      const dd=data[dk(dt)]||{};
+      if(dd.workout)mW++;
+      if(dd.breakfast&&dd.lunch&&dd.dinner)mD++;
+    }
+    const wPct=mTotal?Math.round(mW/mTotal*100):0;
+    const dPct=mTotal?Math.round(mD/mTotal*100):0;
+
+    const card=document.createElement('div');card.className='month-bar-card';
+    card.innerHTML=`<div class="mb-label">${mNames[m]}</div><div class="mb-bar-wrap"><div class="mb-bar" style="background:var(--green);height:${wPct*0.6}px"></div><div class="mb-bar" style="background:var(--blue);height:${dPct*0.6}px"></div></div><div class="mb-pct" style="color:var(--green)">${wPct}%</div>`;
+    mbContainer.appendChild(card);
+  }
+}
+
+function sendAnalysis(){
+  const total=Object.keys(data).length;
+  let wC=0,mC=0;
+  Object.values(data).forEach(d=>{if(d.workout)wC++;if(d.breakfast&&d.lunch&&d.dinner)mC++;});
+  const wp=total?Math.round(wC/total*100):0;
+  const mp=total?Math.round(mC/total*100):0;
+  if(window.parent&&window.parent.postMessage){
+    window.parent.postMessage({type:'sendPrompt',text:`My FitTrack stats: ${total} days logged, ${wp}% workout consistency, ${mp}% full meal consistency. Give me a personalised analysis and 3 specific tips to improve.`},'*');
+  }
+}
+
+function goTo(name){
+  ['today','calendar','progress'].forEach(n=>{
+    document.getElementById('view-'+n).className='view'+(n===name?' active':'');
+    document.getElementById('nav-'+n).className='nav-item'+(n===name?' active':'');
+  });
+  if(name==='calendar')buildCalendar();
+  if(name==='progress')updateProgress();
+}
+
+function setHeaderDate(){
+  const now=new Date();
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('header-date').textContent=days[now.getDay()]+', '+now.getDate()+' '+months[now.getMonth()];
+}
+
+setHeaderDate();
+renderTodayState();
+updateAllStats();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js");}</script>
+</body>
+</html>
