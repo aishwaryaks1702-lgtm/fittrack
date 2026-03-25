@@ -2,7 +2,7 @@
   "name": "FitTrack — 3 Month Tracker",
   "short_name": "FitTrack",
   "description": "Track your daily workouts and diet over 3 months",
-  "start_url": "/",
+  "start_url": "/fittrack/",
   "display": "standalone",
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
